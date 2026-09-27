@@ -1,0 +1,6 @@
+# Standalone desktop app (single user workstation). Paths are resolved by the launcher.
+profile: desktop
+redis_url: null
+cors_origins: ["http://127.0.0.1"]
+models: { providers: auto, tta: true }
+alerts: { window: 30, min_samples: 10 }

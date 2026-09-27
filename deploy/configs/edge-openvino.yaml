@@ -1,0 +1,11 @@
+# Intel x86 edge PC (Core / Atom with iGPU): onnxruntime-openvino.
+#   pip uninstall onnxruntime && pip install onnxruntime-openvino
+profile: edge-openvino
+database_url: sqlite:////data/waferguard.db
+storage_dir: /data/images
+camera_store_every: 10
+models:
+  champion_dir: models/wafer-ensemble
+  providers: [OpenVINOExecutionProvider, CPUExecutionProvider]
+  tta: false
+alerts: { window: 30, min_samples: 10, consecutive_defects: 4 }

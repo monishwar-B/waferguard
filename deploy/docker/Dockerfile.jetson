@@ -1,0 +1,17 @@
+# NVIDIA Jetson (JetPack 6 / L4T r36). onnxruntime-gpu with the TensorRT execution provider.
+# Build ON the Jetson:  docker build -f deploy/docker/Dockerfile.jetson -t waferguard:jetson .
+# Run:                  docker run --runtime nvidia -p 8000:8000 -e WG_CONFIG=deploy/configs/edge-jetson.yaml waferguard:jetson
+ARG L4T=nvcr.io/nvidia/l4t-jetpack:r36.3.0
+FROM ${L4T}
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 WG_STORAGE_DIR=/data/images WG_DATABASE_URL=sqlite:////data/waferguard.db
+RUN apt-get update && apt-get install -y --no-install-recommends python3-pip python3-opencv curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt .
+# The Jetson AI Lab index hosts aarch64 onnxruntime-gpu wheels built against JetPack's CUDA/TensorRT.
+RUN grep -v -E "^onnxruntime|^opencv" requirements.txt > r.txt && pip3 install -r r.txt \
+    && pip3 install onnxruntime-gpu --extra-index-url https://pypi.jetson-ai-lab.dev/jp6/cu122
+COPY waferguard/ waferguard/
+COPY models/ models/
+COPY deploy/configs/ deploy/configs/
+EXPOSE 8000
+CMD ["python3", "-m", "uvicorn", "waferguard.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

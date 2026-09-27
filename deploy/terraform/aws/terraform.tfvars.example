@@ -1,0 +1,5 @@
+region              = "ap-south-1"
+env                 = "prod"
+node_instance_types = ["c6i.xlarge"]
+node_min            = 2
+node_max            = 8

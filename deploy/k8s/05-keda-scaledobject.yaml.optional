@@ -1,0 +1,11 @@
+# Optional (requires KEDA): scale workers on Redis queue length. Delete the worker HPA first.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata: { name: waferguard-worker, namespace: waferguard }
+spec:
+  scaleTargetRef: { name: waferguard-worker }
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  triggers:
+    - type: redis
+      metadata: { address: redis.example.internal:6379, listName: "wg:jobs", listLength: "5" }

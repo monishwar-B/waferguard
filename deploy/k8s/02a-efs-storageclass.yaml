@@ -1,0 +1,9 @@
+# AWS only: storage class for the EFS file system created by Terraform (output: efs_id).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata: { name: efs-sc }
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-REPLACE_WITH_TERRAFORM_OUTPUT
+  directoryPerms: "750"

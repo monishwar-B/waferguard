@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: waferguard-api, namespace: waferguard, labels: { app: waferguard-api } }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: waferguard-api } }
+  strategy: { type: RollingUpdate, rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } }
+  template:
+    metadata:
+      labels: { app: waferguard-api }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "8000", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001 }
+      containers:
+        - name: api
+          image: REGISTRY/waferguard:1.0.0          # set by terraform output / CI
+          ports: [{ containerPort: 8000, name: http }]
+          envFrom: [{ configMapRef: { name: waferguard-config } }, { secretRef: { name: waferguard-secrets } }]
+          resources: { requests: { cpu: "1", memory: 1Gi }, limits: { cpu: "2", memory: 2Gi } }
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 10, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 20, periodSeconds: 20 }
+          volumeMounts: [{ name: images, mountPath: /data/images }]
+      volumes: [{ name: images, persistentVolumeClaim: { claimName: waferguard-images } }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: waferguard-api, namespace: waferguard }
+spec:
+  selector: { app: waferguard-api }
+  ports: [{ port: 80, targetPort: http, name: http }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: waferguard-api, namespace: waferguard }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: waferguard-api }
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
+  behavior:
+    scaleDown: { stabilizationWindowSeconds: 300 }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: waferguard-api, namespace: waferguard }
+spec: { minAvailable: 1, selector: { matchLabels: { app: waferguard-api } } }

@@ -1,0 +1,8 @@
+# HTTPS reverse proxy for WaferGuard. WebSockets and large uploads pass through unchanged.
+{$WG_DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 512MB
+	}
+	reverse_proxy api:8000
+}

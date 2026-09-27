@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: waferguard
+  namespace: waferguard
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "512m"        # batch ZIP uploads
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"     # WebSocket
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls: [{ hosts: [waferguard.example.com], secretName: waferguard-tls }]
+  rules:
+    - host: waferguard.example.com
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: waferguard-api, port: { number: 80 } } } }]

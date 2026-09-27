@@ -1,0 +1,9 @@
+# Shared image store for API + workers. Needs a ReadWriteMany class:
+# AWS: efs-sc (EFS CSI), GCP: filestore (standard-rwx), Azure: azurefile-csi.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: waferguard-images, namespace: waferguard }
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: efs-sc
+  resources: { requests: { storage: 200Gi } }

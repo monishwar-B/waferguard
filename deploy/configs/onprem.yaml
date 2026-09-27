@@ -1,0 +1,35 @@
+# On-premises server (docker compose): PostgreSQL + Redis + N workers on a fab server.
+profile: onprem
+# database_url / redis_url / jwt_secret come from environment variables (see docker-compose.yml)
+store_images: true
+camera_store_every: 1
+fail_ratio_usl: 0.15
+log_json: true
+models:
+  champion_dir: models/wafer-ensemble
+  providers: auto            # CUDA is used automatically if onnxruntime-gpu is installed
+  ab_mode: "off"
+alerts:
+  window: 50
+  min_samples: 20
+  spike_rate: 0.35
+  spike_factor: 2.0
+  consecutive_defects: 5
+  alert_on_critical: true
+  cooldown_minutes: 15
+notifiers:
+  min_level: warning
+  email_enabled: false       # set true and fill smtp_* / email_to
+  smtp_host: smtp.fab.local
+  smtp_port: 587
+  email_from: waferguard@fab.local
+  email_to: [yield-eng@fab.local]
+  teams_webhook_url: null    # Teams channel -> Connectors -> Incoming Webhook URL
+  sms_enabled: false         # Twilio: twilio_account_sid / twilio_auth_token / twilio_from / sms_to
+  webhook_url: null          # e.g. MES event endpoint
+severity:
+  critical_fail_ratio: 0.30
+  major_fail_ratio: 0.10
+  minor_fail_ratio: 0.02
+  review_confidence: 0.80
+  reject_confidence: 0.40

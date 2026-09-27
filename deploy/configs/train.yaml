@@ -1,0 +1,31 @@
+# WaferGuard training configuration.
+# Run:  python -m waferguard.training.train --config deploy/configs/train.yaml
+data_root: dataset                 # folder-per-class dataset (any supported image format)
+classes: [none, Center, Donut, Edge-Loc, Edge-Ring, Local, Random, Scratch, Near-full]
+output_dir: models/wafer-ensemble
+cache_dir: .cache/preprocess
+input_size: 64
+leakage_safe_split: true           # remove duplicates, keep near-duplicates in one split
+seed: 42
+augment_profile: wafer_map         # use "image" for continuous-tone SEM/optical datasets
+
+members:                           # CNN members of the ensemble (GBM member added below)
+  - {arch: wafernet, width: 24, seed: 1}
+  - {arch: wafernet, width: 16, seed: 2}
+  # GPU examples (ImageNet transfer learning):
+  # - {arch: efficientnet_b4, seed: 3, dropout: 0.4}
+  # - {arch: convnext_tiny, seed: 4}
+  # - {arch: vit_small, seed: 5, patch: 8}
+
+epochs: 22
+batch_size: 64
+lr: 0.002
+weight_decay: 0.0001
+focal_gamma: 2.0
+label_smoothing: 0.05
+early_stopping_patience: 8
+hard_negative_mining: {enabled: true, start_epoch: 4, strength: 1.5, top_frac: 0.2}
+gbm: {enabled: true, max_iter: 400, learning_rate: 0.06}
+tta: true
+pseudo_label: {enabled: false, unlabeled_dir: null, threshold: 0.97, weight: 0.5, epochs: 8}
+mlflow: {enabled: true, experiment: waferguard, tracking_uri: null}

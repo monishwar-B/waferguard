@@ -1,0 +1,14 @@
+# NVIDIA Jetson at the inspection tool: SQLite, in-process queue, TensorRT inference.
+# Build the TensorRT-friendly model first: scripts/export_tensorrt.sh
+profile: edge-jetson
+database_url: sqlite:////data/waferguard.db
+redis_url: null
+storage_dir: /data/images
+camera_store_every: 10       # keep every 10th frame + all results in the DB
+max_upload_mb: 32
+models:
+  champion_dir: models/wafer-ensemble
+  providers: [TensorrtExecutionProvider, CUDAExecutionProvider, CPUExecutionProvider]
+  tta: false                 # 8x TTA costs 8x latency; enable if the takt time allows
+alerts: { window: 30, min_samples: 10, consecutive_defects: 4 }
+notifiers: { min_level: critical }

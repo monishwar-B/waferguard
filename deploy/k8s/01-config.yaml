@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: waferguard-config, namespace: waferguard }
+data:
+  WG_CONFIG: deploy/configs/cloud.yaml
+  WG_STORAGE_DIR: /data/images
+  WG_LOG_JSON: "true"
+---
+# Replace the values (or use External Secrets / Sealed Secrets / cloud secret manager).
+apiVersion: v1
+kind: Secret
+metadata: { name: waferguard-secrets, namespace: waferguard }
+type: Opaque
+stringData:
+  WG_DATABASE_URL: postgresql+psycopg://waferguard:CHANGE_ME@postgres.example.internal:5432/waferguard
+  WG_REDIS_URL: redis://redis.example.internal:6379/0
+  WG_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_STRING
+  WG_BOOTSTRAP_ADMIN_PASSWORD: CHANGE_ME

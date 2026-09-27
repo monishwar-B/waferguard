@@ -1,0 +1,22 @@
+groups:
+  - name: waferguard
+    rules:
+      - alert: WaferGuardApiDown
+        expr: up{job="waferguard-api"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "WaferGuard API is not responding" }
+      - alert: InferenceLatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(wg_inference_latency_seconds_bucket[5m])) by (le)) > 0.5
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "p95 model latency above 500 ms" }
+      - alert: BatchQueueBacklog
+        expr: wg_queue_depth > 500
+        for: 15m
+        labels: { severity: warning }
+        annotations: { summary: "Batch queue backlog: add workers" }
+      - alert: CriticalDefectsRising
+        expr: sum(increase(wg_inspections_total{severity="Critical"}[30m])) > 10
+        labels: { severity: critical }
+        annotations: { summary: "More than 10 critical wafers in 30 minutes" }

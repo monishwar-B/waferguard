@@ -1,0 +1,13 @@
+# Kubernetes / cloud: stateless API replicas behind a load balancer, managed Postgres + Redis,
+# images on a shared volume (EFS / Filestore / Azure Files). Secrets via env (k8s Secret).
+profile: cloud
+store_images: true
+camera_store_every: 5        # cameras usually run on-prem; keep cloud storage lean
+log_json: true
+cors_origins: ["https://waferguard.example.com"]
+models:
+  champion_dir: /app/models/wafer-ensemble
+  providers: auto
+  threads: 2                 # match the pod CPU request
+alerts: { window: 100, min_samples: 30, spike_rate: 0.35, spike_factor: 2.0, consecutive_defects: 6, cooldown_minutes: 20 }
+notifiers: { min_level: warning }

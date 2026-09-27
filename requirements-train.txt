@@ -1,0 +1,6 @@
+-r requirements.txt
+tensorflow>=2.16            # tensorflow-cpu is enough for the compact models
+tf2onnx>=1.16
+onnx>=1.16
+optuna>=3.6                 # hyperparameter search (waferguard.training.tune)
+mlflow>=2.12                # experiment tracking / model versioning (optional)

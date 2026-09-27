@@ -1,0 +1,12 @@
+# Training image. GPU: build with --build-arg BASE=tensorflow/tensorflow:2.16.1-gpu and run with --gpus all.
+ARG BASE=python:3.12-slim
+FROM ${BASE}
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt requirements-train.txt ./
+RUN pip install -r requirements-train.txt
+COPY waferguard/ waferguard/
+COPY deploy/configs/ deploy/configs/
+# mount your dataset at /data/dataset and an output folder at /app/models
+ENTRYPOINT ["python", "-m", "waferguard.training.train", "--config", "deploy/configs/train.yaml", "--data-root", "/data/dataset"]

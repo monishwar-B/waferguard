@@ -1,0 +1,11 @@
+.git
+**/__pycache__
+**/*.pyc
+.cache
+var
+frontend/node_modules
+dataset*
+*.log
+models/**/*.keras
+models/**/*.h5
+models/**/*.state.json

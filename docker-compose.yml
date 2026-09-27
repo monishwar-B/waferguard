@@ -1,0 +1,93 @@
+# One-command deployment:   docker compose up -d        ->  http://localhost:8000  (admin / admin123, change it)
+# Scale batch workers:      docker compose up -d --scale worker=4
+# With MLflow tracking UI:  docker compose --profile mlops up -d
+x-app: &app
+  build: { context: ., dockerfile: deploy/docker/Dockerfile }
+  image: waferguard:1.0.0
+  restart: unless-stopped
+  environment: &env
+    WG_CONFIG: deploy/configs/onprem.yaml
+    WG_DATABASE_URL: postgresql+psycopg://waferguard:${POSTGRES_PASSWORD:-waferguard}@postgres:5432/waferguard
+    WG_REDIS_URL: redis://redis:6379/0
+    WG_STORAGE_DIR: /data/images
+    WG_JWT_SECRET: ${WG_JWT_SECRET:-please-set-a-long-random-secret}
+    WG_BOOTSTRAP_ADMIN_PASSWORD: ${WG_ADMIN_PASSWORD:-admin123}
+    WG_LOG_JSON: "true"
+  volumes:
+    - images:/data/images
+    - ./models:/app/models:ro
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+
+services:
+  api:
+    <<: *app
+    ports: ["${WG_PORT:-8000}:8000"]
+    healthcheck: { test: ["CMD", "curl", "-fs", "http://localhost:8000/ready"], interval: 10s, timeout: 5s, retries: 12, start_period: 20s }
+
+  # HTTPS front door (optional):  docker compose --profile https up -d
+  # Set WG_DOMAIN in .env to a public DNS name for an automatic Let's Encrypt certificate,
+  # or leave it as localhost / an IP for a self-signed internal certificate.
+  caddy:
+    profiles: ["https"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment: { WG_DOMAIN: "${WG_DOMAIN:-localhost}" }
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      api: { condition: service_healthy }
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "waferguard.api.worker"]
+    healthcheck: { disable: true }
+    depends_on:
+      api: { condition: service_healthy }
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: waferguard
+      POSTGRES_USER: waferguard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-waferguard}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U waferguard"], interval: 5s, retries: 20 }
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 20 }
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: unless-stopped
+    volumes: ["./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro",
+              "./deploy/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro"]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+
+  mlflow:
+    profiles: ["mlops"]
+    image: ghcr.io/mlflow/mlflow:v2.14.1
+    command: ["mlflow", "server", "--host", "0.0.0.0", "--backend-store-uri", "sqlite:///mlflow/mlflow.db",
+              "--default-artifact-root", "/mlflow/artifacts"]
+    volumes: [mlflow:/mlflow]
+    ports: ["5000:5000"]
+
+volumes: { images: {}, pgdata: {}, redisdata: {}, mlflow: {}, caddydata: {} }

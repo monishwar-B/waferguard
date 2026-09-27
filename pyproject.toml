@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "waferguard"
+version = "1.0.0"
+description = "Wafer defect inspection: classification, localization, SPC, alerting, audit trail"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["dependencies"]
+
+[project.scripts]
+waferguard = "waferguard.cli:main"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["waferguard*"]
+
+[tool.setuptools.package-data]
+waferguard = ["api/static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["waferguard"]
+# TensorFlow training code and the desktop launcher are exercised by their own
+# scripts (training needs a GPU/TensorFlow; the desktop app needs a display).
+omit = ["waferguard/training/*", "waferguard/desktop/*", "waferguard/api/worker.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:"]

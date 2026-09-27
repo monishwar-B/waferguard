@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.onnx binary
+*.npz binary
+*.keras binary
+*.png binary
+*.woff binary
+*.woff2 binary

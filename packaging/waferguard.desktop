@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=WaferGuard
+Comment=Wafer defect inspection
+Exec=WaferGuard
+Icon=waferguard
+Categories=Science;Engineering;
+Terminal=false

@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: waferguard-worker, namespace: waferguard, labels: { app: waferguard-worker } }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: waferguard-worker } }
+  template:
+    metadata: { labels: { app: waferguard-worker } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001 }
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          image: REGISTRY/waferguard:1.0.0
+          command: ["python", "-m", "waferguard.api.worker"]
+          envFrom: [{ configMapRef: { name: waferguard-config } }, { secretRef: { name: waferguard-secrets } }]
+          resources: { requests: { cpu: "1", memory: 1Gi }, limits: { cpu: "2", memory: 2Gi } }
+          volumeMounts: [{ name: images, mountPath: /data/images }]
+      volumes: [{ name: images, persistentVolumeClaim: { claimName: waferguard-images } }]
+---
+# CPU-based autoscaling. For queue-depth scaling install KEDA and apply 05-keda-scaledobject.yaml instead.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: waferguard-worker, namespace: waferguard }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: waferguard-worker }
+  minReplicas: 1
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
