@@ -1,4 +1,4 @@
-# Model card: waferguard-ensemble 2026.09.26-1854
+# Model card: waferguard-ensemble 2026.09.27-0616
 
 ## Intended use
 Classifying the spatial failure signature of a **wafer map** (die-level pass/fail map from wafer
@@ -7,60 +7,60 @@ support yield engineers and flag lots for review. It is **not** a die-level SEM/
 classifier, and it must not auto-scrap wafers without human confirmation of Critical results.
 
 ## Model
-Weighted soft-voting ensemble, created 2026-09-26T18:54:15 UTC, trained on 1 CPU core (the run was resumed from per-epoch checkpoints several times; the last session took 13 min, total roughly 1 h of compute).
+Weighted soft-voting ensemble, created 2026-09-27T06:16:28 UTC, trained on 1 CPU core (the run was resumed from per-epoch checkpoints several times; the last session took 6 min, total roughly 1 h of compute).
 
 | Member | Type | Voting weight |
 |---|---|---|
-| wafernet_0 | wafernet | 0.50 |
-| wafernet_1 | wafernet | 0.30 |
-| gbm_features | sklearn | 0.20 |
+| wafernet_0 | wafernet | 0.55 |
+| wafernet_1 | wafernet | 0.20 |
+| gbm_features | portable_gbm | 0.25 |
 
-Input: NHWC one-hot planes [background, pass, fail], float32, 64Ã—64. Test-time augmentation: 8 dihedral views.
+Input: NHWC one-hot planes [background, pass, fail], float32, 64×64. Test-time augmentation: 8 dihedral views.
 
 ## Data
 WM-811K wafer maps rendered as PNG (from the previous project's `dataset/`), 9 classes.
 Leakage-safe split (seed 42): {"input_images": 9001, "exact_duplicates_removed": 1006, "near_duplicate_groups": 2, "sizes": {"train": 5589, "val": 1203, "test": 1203}}.
-The original split had 17â€“38% test/train duplicates in six classes, which is why the split was rebuilt.
+The original split had 17–38% test/train duplicates in six classes, which is why the split was rebuilt.
 
 ## Held-out test results (1203 wafers)
 | Configuration | Test accuracy |
 |---|---|
 | wafernet 0 | 91.1% |
 | wafernet 1 | 90.9% |
-| gbm features | 88.2% |
+| gbm features | 88.4% |
 | wafernet 0 + TTA | 91.4% |
 | wafernet 1 + TTA | 91.9% |
-| ensemble no tta | 92.4% |
-| **Final ensemble + TTA (shipped)** | **92.2%** (macro-F1 92.1%) |
+| ensemble no tta | 92.1% |
+| **Final ensemble + TTA (shipped)** | **92.4%** (macro-F1 92.4%) |
 
 ### Per class
 | Class | Precision | Recall | F1 | Test wafers |
 |---|---|---|---|---|
-| No defect | 85.9% | 92.7% | 89.2% | 151 |
-| Center cluster | 93.5% | 94.3% | 93.9% | 122 |
+| No defect | 86.5% | 93.4% | 89.8% | 151 |
+| Center cluster | 94.3% | 94.3% | 94.3% | 122 |
 | Donut | 93.8% | 98.5% | 96.1% | 137 |
-| Edge local | 87.5% | 82.7% | 85.0% | 127 |
-| Edge ring | 98.6% | 96.7% | 97.6% | 150 |
-| Local cluster | 88.9% | 81.2% | 84.9% | 128 |
-| Random | 93.5% | 93.5% | 93.5% | 124 |
-| Scratch | 90.6% | 89.3% | 89.9% | 140 |
+| Edge local | 88.3% | 83.5% | 85.8% | 127 |
+| Edge ring | 97.3% | 96.7% | 97.0% | 150 |
+| Local cluster | 87.5% | 82.0% | 84.7% | 128 |
+| Random | 94.3% | 92.7% | 93.5% | 124 |
+| Scratch | 92.6% | 90.0% | 91.3% | 140 |
 | Near-full failure | 97.6% | 100.0% | 98.8% | 124 |
 
 ### Confusion matrix
 | true \ predicted | none | Center | Donut | Edge-Loc | Edge-Ring | Local | Random | Scratch | Near-full |
 |---|---|---|---|---|---|---|---|---|---|
-| **none** | 140 | 2 | 1 | 3 | 0 | 2 | 0 | 3 | 0 |
-| **Center** | 2 | 115 | 1 | 1 | 0 | 2 | 0 | 0 | 1 |
+| **none** | 141 | 1 | 1 | 2 | 2 | 2 | 0 | 2 | 0 |
+| **Center** | 1 | 115 | 1 | 1 | 0 | 3 | 0 | 0 | 1 |
 | **Donut** | 0 | 0 | 135 | 0 | 0 | 1 | 0 | 1 | 0 |
-| **Edge-Loc** | 7 | 1 | 0 | 105 | 2 | 4 | 4 | 3 | 1 |
+| **Edge-Loc** | 8 | 0 | 0 | 106 | 2 | 5 | 3 | 2 | 1 |
 | **Edge-Ring** | 3 | 0 | 0 | 2 | 145 | 0 | 0 | 0 | 0 |
-| **Local** | 2 | 3 | 3 | 7 | 0 | 104 | 3 | 6 | 0 |
-| **Random** | 0 | 2 | 4 | 0 | 0 | 1 | 116 | 0 | 1 |
-| **Scratch** | 9 | 0 | 0 | 2 | 0 | 3 | 1 | 125 | 0 |
+| **Local** | 2 | 4 | 4 | 6 | 0 | 105 | 3 | 4 | 0 |
+| **Random** | 0 | 2 | 3 | 1 | 0 | 1 | 115 | 1 | 1 |
+| **Scratch** | 8 | 0 | 0 | 2 | 0 | 3 | 1 | 126 | 0 |
 | **Near-full** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 124 |
 
 ## Target
-**Not reached on this data.** The shipped ensemble scores 92.2% on the leakage-safe held-out test split, below the 95.0% target. It was trained on one CPU core from ~5.6k training wafers. The weakest classes are Local cluster, Edge local, Scratch; their confusions are the classic ambiguous WM-811K pairs (Local vs Edge-Loc vs Scratch). Published >95% WM-811K figures usually use far more data, and often splits with duplicates.
+**Not reached on this data.** The shipped ensemble scores 92.4% on the leakage-safe held-out test split, below the 95.0% target. It was trained on one CPU core from ~5.6k training wafers. The weakest classes are Local cluster, Edge local, Scratch; their confusions are the classic ambiguous WM-811K pairs (Local vs Edge-Loc vs Scratch). Published >95% WM-811K figures usually use far more data, and often splits with duplicates.
 
 ## Limitations
 - Trained on a 9k-map subset. Rare real classes (Near-full, Donut) are small in WM-811K itself.
