@@ -1,0 +1,8 @@
+# Streamlit Community Cloud installs this file (it sits next to streamlit_app.py).
+streamlit>=1.50
+numpy>=1.26
+pandas>=2.0
+opencv-python-headless>=4.9
+pillow>=10.2
+onnxruntime>=1.18
+reportlab>=4.1

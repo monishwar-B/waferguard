@@ -158,3 +158,32 @@ Caddy obtains a Let's Encrypt certificate automatically. Open
 | Batch jobs stay "queued" | `docker compose ps worker` must show it running; `docker compose logs worker`. |
 | HTTPS certificate not issued | The DNS record must point at the VM, and ports 80 and 443 must be open. `docker compose logs caddy` shows the reason. |
 | Tablet camera button does nothing | The page must be HTTPS (see Option A step 4, or Option B). |
+
+
+---
+
+## Option C: free website on Streamlit Community Cloud (no card, no server)
+
+`demo/streamlit_app.py` is a Streamlit edition of WaferGuard. It uses the same model, localization,
+severity grading, root-cause guide and PDF reports, and deploys from this GitHub repository to a free
+permanent `https://<name>.streamlit.app` address that works on any PC or phone.
+
+It leaves out what needs a server: user accounts, the permanent database and audit trail, alerts,
+batch workers and industrial cameras. History lasts for the browser session. For those features,
+use Option A or B.
+
+1. Push this repository to GitHub (it may be private).
+2. Go to **share.streamlit.io**, sign in with GitHub and allow access to your repositories.
+3. **Create app -> Deploy a public app from GitHub**:
+   - Repository: `<your-username>/waferguard`, branch `main`
+   - Main file path: `demo/streamlit_app.py`
+   - App URL: choose a name, e.g. `waferguard-cit`
+   - **Advanced settings:** Python **3.12**. Optionally, under **Secrets**, add
+     `APP_PASSWORD = "your-password"` so visitors must enter a password.
+4. Click **Deploy**. The first build takes 3-6 minutes, after which the link is live.
+
+Updates deploy automatically on every `git push`. Apps sleep after a period without visitors;
+the next visitor wakes it with one click (about 30 seconds).
+
+To try it on your PC first: `pip install streamlit`, then run the app with Streamlit
+(`python -m streamlit run demo/streamlit_app.py`).
