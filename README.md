@@ -61,16 +61,13 @@ plus 8-way dihedral test-time augmentation for the CNNs.
 |---|---|
 | wafernet 0 | 91.1% |
 | wafernet 1 | 90.9% |
-| gbm features | 88.2% |
+| gbm features | 88.4% |
 | wafernet 0 + TTA | 91.4% |
 | wafernet 1 + TTA | 91.9% |
-| ensemble no tta | 92.4% |
-| **Final ensemble + TTA (shipped)** | **92.2%** (macro-F1 92.1%) |
+| ensemble no tta | 92.1% |
+| **Final ensemble + TTA (shipped)** | **92.4%** (macro-F1 92.4%) |
 
-TTA helped each CNN on its own (+0.3 and +1.0 points), but on this test set the ensemble
-*without* TTA scored slightly higher (92.4% vs 92.2%). That is 2 wafers out of 1,203,
-within noise. TTA stays on because it was chosen on the validation split, and the test split
-is not used for decisions. On latency-bound edge devices, `models.tta: false` costs nothing measurable.
+On this test set the ensemble scored 92.4% with test-time augmentation (TTA) and 92.1% without it. TTA stays on because that choice was made on the validation split; the test split is never used for decisions. On latency-bound edge devices, `models.tta: false` makes little difference.
 
 `models/wafer-ensemble-int8/` is a post-training INT8 version. It scores **91.6%** on the same
 test split and runs **2.2× faster (7.9 vs 17.3 ms/wafer on one CPU core, TTA on)** with 3.4×
@@ -78,7 +75,7 @@ smaller CNN files. Use it on CPU / OpenVINO edge boxes, or deploy it as a shadow
 The ONNX Runtime serving path reproduces the training-time test accuracy exactly
 (`scripts/evaluate.py`).
 
-**About the >95% target.** **Not reached on this data.** The shipped ensemble scores 92.2% on the leakage-safe held-out test split, below the 95.0% target. It was trained on one CPU core from ~5.6k training wafers. The weakest classes are Local cluster, Edge local, Scratch; their confusions are the classic ambiguous WM-811K pairs (Local vs Edge-Loc vs Scratch). Published >95% WM-811K figures usually use far more data, and often splits with duplicates.
+**About the >95% target.** **Not reached on this data.** The shipped ensemble scores 92.4% on the leakage-safe held-out test split, below the 95.0% target. It was trained on one CPU core from ~5.6k training wafers. The weakest classes are Local cluster, Edge local, Scratch; their confusions are the classic ambiguous WM-811K pairs (Local vs Edge-Loc vs Scratch). Published >95% WM-811K figures usually use far more data, and often splits with duplicates.
 
 The pipeline contains everything needed to push further on a GPU:
 - EfficientNet-B4/B7, ConvNeXt, ResNet152V2 and ViT backbones with ImageNet transfer learning
@@ -137,7 +134,7 @@ deploy/          docker/, k8s/, terraform/aws/, configs/ (train, onprem, cloud, 
 packaging/       PyInstaller spec, Inno Setup script, AppImage files
 scripts/         run_local, evaluate, quantize_int8, export_tensorrt, export_openvino, build_desktop_*, deploy_k8s
 sample_data/     27 held-out real wafer maps + one file per supported format
-tests/           pytest suite (56 tests)
+tests/           pytest suite (66 tests)
 docs/            ARCHITECTURE, API, TRAINING, DEPLOYMENT, TROUBLESHOOTING, MODEL_CARD
 ```
 
@@ -148,7 +145,7 @@ pip install -r requirements-dev.txt
 pytest --cov=waferguard
 ```
 
-The suite has 56 tests, all passing with the shipped model. Coverage is **97%
+The suite has 66 tests, all passing with the shipped model. Coverage is **97%
 of the serving code**. The TensorFlow training package, the desktop GUI launcher and the
 blocking worker loop are excluded from the coverage figure (`pyproject.toml`). They need
 TensorFlow, a display or a live Redis. The worker's job-processing logic *is* tested,
