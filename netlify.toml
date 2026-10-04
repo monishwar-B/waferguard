@@ -1,0 +1,15 @@
+# Netlify hosts the React frontend only. The Python API runs elsewhere (see render.yaml).
+[build]
+  base    = "frontend"
+  command = "npm run build -- --outDir dist --emptyOutDir"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Set VITE_API_BASE in Netlify: Site configuration -> Environment variables
+  # e.g. https://waferguard-api.onrender.com  (no trailing slash)
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

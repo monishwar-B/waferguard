@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from "react";
 
 const TOKEN_KEY = "wg.session";
 
+// Where the backend lives. Empty = same origin (docker / desktop / local dev proxy).
+// On Netlify, set VITE_API_BASE to the backend URL, e.g. https://waferguard-api.onrender.com
+export const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
+
 export function getSession() {
   try {
     return JSON.parse(localStorage.getItem(TOKEN_KEY)) || null;
@@ -33,7 +37,7 @@ export async function api(path, { method = "GET", body, form, raw } = {}) {
     headers["Content-Type"] = "application/json";
     payload = JSON.stringify(body);
   }
-  const r = await fetch(path, { method, headers, body: payload });
+  const r = await fetch(API_BASE + path, { method, headers, body: payload });
   if (r.status === 401 && s) {
     setSession(null);
     window.dispatchEvent(new Event("wg-logout"));
@@ -52,7 +56,7 @@ export async function api(path, { method = "GET", body, form, raw } = {}) {
 
 export async function login(username, password) {
   const form = new URLSearchParams({ username, password });
-  const r = await fetch("/api/v1/auth/token", { method: "POST", body: form });
+  const r = await fetch(API_BASE + "/api/v1/auth/token", { method: "POST", body: form });
   if (!r.ok) throw new ApiError(r.status, (await r.json()).detail);
   const s = await r.json();
   setSession(s);
@@ -63,7 +67,8 @@ export async function login(username, password) {
 export function authUrl(path) {
   const s = getSession();
   const sep = path.includes("?") ? "&" : "?";
-  return s ? `${path}${sep}token=${encodeURIComponent(s.access_token)}` : path;
+  const full = API_BASE + path;
+  return s ? `${full}${sep}token=${encodeURIComponent(s.access_token)}` : full;
 }
 
 export function qs(obj) {
@@ -90,8 +95,9 @@ export function useEvents(onEvent) {
     const connect = () => {
       const s = getSession();
       if (!s || stop) return;
-      const proto = location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(s.access_token)}`);
+      const base = API_BASE || location.origin;
+      const wsBase = base.replace(/^http/, "ws"); // http->ws, https->wss
+      ws = new WebSocket(`${wsBase}/ws?token=${encodeURIComponent(s.access_token)}`);
       ws.onopen = () => { setConnected(true); delay = 1000; };
       ws.onmessage = (m) => {
         const ev = JSON.parse(m.data);

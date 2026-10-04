@@ -1,0 +1,16 @@
+# Render Blueprint: deploys the WaferGuard API (FastAPI + ONNX models) from the Dockerfile.
+services:
+  - type: web
+    name: waferguard-api
+    runtime: docker
+    dockerfilePath: ./deploy/docker/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: WG_JWT_SECRET
+        generateValue: true
+      - key: WG_ADMIN_PASSWORD
+        sync: false        # Render asks you for this on first deploy
