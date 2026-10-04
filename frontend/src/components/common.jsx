@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, authUrl, can, fmtTime, pct } from "../api.js";
+import Guidance from "./Guidance.jsx";
 
 export const DISPLAY = {
   none: "No defect", Center: "Center cluster", Donut: "Donut", "Edge-Loc": "Edge local", "Edge-Ring": "Edge ring",
@@ -26,7 +27,7 @@ export function ControlChart({ points, center, height = 220, yMax, yFmt = (v) =>
     <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="control chart">
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--grid)" />
+          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#eceee9" />
           <text x={L - 6} y={y(t) + 4} textAnchor="end">{yFmt(t)}</text>
         </g>
       ))}
@@ -141,6 +142,7 @@ export function InspectionModal({ id, session, classes, onClose, onChanged }) {
             </div>
           </div>
         )}
+        {d?.guidance && <div style={{ marginTop: 18 }}><Guidance g={d.guidance} severity={d.severity} /></div>}
       </div>
     </div>
   );

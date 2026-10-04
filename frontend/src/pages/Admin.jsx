@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, authUrl, can, fmtTime, pct } from "../api.js";
 import { Icon } from "../components/icons.jsx";
+import ModelScores from "../components/ModelScores.jsx";
 
 const ROLES = ["Operator", "Engineer", "Manager", "Admin"];
 
@@ -153,7 +154,8 @@ function Models({ session }) {
   return (
     <div className="stack">
       {!info.ready && <div className="warn-flag">No model loaded: {info.error}</div>}
-      <div className="grid cols-2">{card("Champion (serving)", info.champion)}{card("Challenger", info.challenger)}</div>
+      <ModelScores model={info.champion} />
+      <div className="grid cols-2">{card("Serving model details", info.champion)}{card("Challenger", info.challenger)}</div>
       {stats && (
         <div className="panel table-wrap">
           <h2>A/B results</h2>

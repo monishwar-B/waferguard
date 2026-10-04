@@ -1,4 +1,4 @@
-// Light / dark theme. Remembers the choice; the first visit follows the device setting.
+// Light / dark theme. Remembers the choice; the first visit uses the dark theme.
 import { useEffect, useState } from "react";
 
 const KEY = "wg.theme";
@@ -8,12 +8,12 @@ export function getTheme() {
     const t = localStorage.getItem(KEY);
     if (t === "light" || t === "dark") return t;
   } catch { /* storage blocked */ }
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "dark"; // the app's original look; users can switch to light
 }
 
 export function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0b1220" : "#0f172a");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0a0c10" : "#eef1f6");
 }
 
 export function useTheme() {
