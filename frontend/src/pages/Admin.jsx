@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, authUrl, can, fmtTime, pct } from "../api.js";
-import { Icon } from "../components/icons.jsx";
+import { Icon, PasswordInput } from "../components/icons.jsx";
 import ModelScores from "../components/ModelScores.jsx";
 
 const ROLES = ["Operator", "Engineer", "Manager", "Admin"];
@@ -70,7 +70,7 @@ function Users({ me }) {
         <h2>Add a user</h2>
         <label className="field">Username<input value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></label>
         <label className="field">Full name<input value={f.full_name} onChange={(e) => setF({ ...f, full_name: e.target.value })} /></label>
-        <label className="field">Initial password (8+ characters)<input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></label>
+        <label className="field">Initial password (8+ characters)<PasswordInput autoComplete="new-password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></label>
         <label className="field">Role<select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>{ROLES.map((r) => <option key={r}>{r}</option>)}</select></label>
         <button className="btn" onClick={create}>Add user</button>
         {err && <p className="error" role="alert">{err}</p>}

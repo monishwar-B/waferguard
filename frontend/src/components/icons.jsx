@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 // Small stroke icons (24x24 grid), drawn inline so there is nothing extra to download.
 const PATHS = {
   inspect: ["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z", "M21 21l-4.35-4.35"],
@@ -11,6 +13,8 @@ const PATHS = {
   moon: ["M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"],
   logout: ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "M16 17l5-5-5-5", "M21 12H9"],
   trash: ["M3 6h18", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6", "M10 11v6", "M14 11v6"],
+  eye: ["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"],
+  eyeoff: ["M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94", "M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19", "M14.12 14.12a3 3 0 1 1-4.24-4.24", "M1 1l22 22"],
   warn: ["M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z", "M12 9v4", "M12 17h.01"],
 };
 
@@ -31,5 +35,20 @@ export function ThemeToggle({ theme, onToggle, className = "" }) {
       <Icon name={dark ? "sun" : "moon"} />
       <span className="label-text">{dark ? "Light theme" : "Dark theme"}</span>
     </button>
+  );
+}
+
+// Password box with a show / hide button. Drop-in replacement for <input type="password" />.
+export function PasswordInput({ className = "", ...props }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className={`pw-wrap ${className}`}>
+      <input {...props} type={shown ? "text" : "password"} />
+      <button type="button" className="pw-toggle" onClick={() => setShown((v) => !v)}
+              aria-label={shown ? "Hide password" : "Show password"} aria-pressed={shown}
+              title={shown ? "Hide password" : "Show password"}>
+        <Icon name={shown ? "eyeoff" : "eye"} size={18} />
+      </button>
+    </div>
   );
 }

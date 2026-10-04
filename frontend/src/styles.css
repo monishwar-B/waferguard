@@ -434,3 +434,13 @@ td.actions, th.actions { text-align: right; width: 1%; white-space: nowrap; }
 :root[data-theme="light"] .warn-flag { border-color: rgba(198, 47, 39, 0.35); }
 :root[data-theme="light"] .stage .empty { color: #8f9ab0; }
 body, .panel, .topbar, .navtabs, .modal, .btn, input, select, textarea { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
+
+/* ---------- show / hide password ---------- */
+.pw-wrap { position: relative; display: flex; }
+.pw-wrap input { width: 100%; padding-right: 46px; }
+.pw-toggle { all: unset; box-sizing: border-box; cursor: pointer; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--muted); transition: color 0.15s, background-color 0.15s; }
+.pw-toggle:hover { color: var(--accent-text); background: var(--hover); }
+.pw-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pw-toggle[aria-pressed="true"] { color: var(--accent-text); }
+/* hide the browser's own reveal icon (Edge/IE) so there is only one eye */
+input::-ms-reveal, input::-ms-clear { display: none; }

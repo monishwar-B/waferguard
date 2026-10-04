@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, can, getSession, login, setSession, useEvents } from "./api.js";
 import { InspectionModal } from "./components/common.jsx";
-import { ThemeToggle } from "./components/icons.jsx";
+import { PasswordInput, ThemeToggle } from "./components/icons.jsx";
 import { useTheme } from "./theme.js";
 import Admin from "./pages/Admin.jsx";
 import { Alerts, SPC } from "./pages/Analytics.jsx";
@@ -36,7 +36,7 @@ function Login({ onLogin, theme, onToggleTheme }) {
           <div><div className="brand-name">WaferGuard</div><div className="brand-tag">Wafer defect inspection</div></div>
         </div>
         <label className="field">Username<input autoFocus autoComplete="username" value={u} onChange={(e) => setU(e.target.value)} /></label>
-        <label className="field">Password<input type="password" autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} /></label>
+        <label className="field">Password<PasswordInput autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} /></label>
         <button className="btn accent" type="submit">Sign in</button>
         {err && <p className="error" role="alert">{err}</p>}
       </form>
