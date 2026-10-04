@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, authUrl, can, fmtTime, pct } from "../api.js";
-import ModelScores from "../components/ModelScores.jsx";
+import { Icon } from "../components/icons.jsx";
 
 const ROLES = ["Operator", "Engineer", "Manager", "Admin"];
 
@@ -37,16 +37,31 @@ function Users({ me }) {
     try { await api("/api/v1/users", { method: "POST", body: f }); setF({ username: "", password: "", role: "Operator", full_name: "" }); load(); }
     catch (e) { setErr(e.message); }
   };
+  const [toDelete, setToDelete] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const remove = async () => {
+    setBusy(true);
+    setErr("");
+    try { await api(`/api/v1/users/${encodeURIComponent(toDelete.username)}`, { method: "DELETE" }); setToDelete(null); await load(); }
+    catch (e) { setErr(e.message); setToDelete(null); }
+    finally { setBusy(false); }
+  };
   const patch = async (u, body) => { try { await api(`/api/v1/users/${u}`, { method: "PATCH", body }); load(); } catch (e) { setErr(e.message); } };
   return (
     <div className="grid cols-2">
       <div className="panel table-wrap">
-        <table><thead><tr><th>User</th><th>Role</th><th>Active</th></tr></thead>
+        <table><thead><tr><th>User</th><th>Role</th><th>Active</th><th className="actions">Delete</th></tr></thead>
           <tbody>{users.map((u) => (
             <tr key={u.id}>
-              <td>{u.username}<div className="small muted">{u.full_name}</div></td>
+              <td>{u.username}{u.username === me && <span className="small muted"> (you)</span>}<div className="small muted">{u.full_name}</div></td>
               <td><select value={u.role} onChange={(e) => patch(u.username, { role: e.target.value })}>{ROLES.map((r) => <option key={r}>{r}</option>)}</select></td>
               <td><input type="checkbox" style={{ minHeight: "auto" }} checked={u.active} disabled={u.username === me} onChange={(e) => patch(u.username, { active: e.target.checked })} /></td>
+              <td className="actions">
+                <button className="btn danger small" disabled={u.username === me} onClick={() => setToDelete(u)}
+                        title={u.username === me ? "You cannot delete your own account" : `Delete ${u.username}`} aria-label={`Delete user ${u.username}`}>
+                  <Icon name="trash" size={15} />Delete
+                </button>
+              </td>
             </tr>
           ))}</tbody></table>
       </div>
@@ -57,8 +72,21 @@ function Users({ me }) {
         <label className="field">Initial password (8+ characters)<input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></label>
         <label className="field">Role<select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>{ROLES.map((r) => <option key={r}>{r}</option>)}</select></label>
         <button className="btn" onClick={create}>Add user</button>
-        {err && <p className="error">{err}</p>}
+        {err && <p className="error" role="alert">{err}</p>}
       </div>
+      {toDelete && (
+        <div className="overlay center" onClick={() => !busy && setToDelete(null)}>
+          <div className="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="del-title" onClick={(e) => e.stopPropagation()}>
+            <div className="icon-badge"><Icon name="warn" size={22} /></div>
+            <h2 id="del-title">Delete {toDelete.username}?</h2>
+            <p>This permanently removes the account and signs the user out. Their past inspections and audit entries are kept. This cannot be undone.</p>
+            <div className="row">
+              <button className="btn secondary" autoFocus onClick={() => setToDelete(null)} disabled={busy}>Cancel</button>
+              <button className="btn danger solid" onClick={remove} disabled={busy}>{busy ? "Deleting…" : "Delete user"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -125,8 +153,7 @@ function Models({ session }) {
   return (
     <div className="stack">
       {!info.ready && <div className="warn-flag">No model loaded: {info.error}</div>}
-      <ModelScores model={info.champion} />
-      <div className="grid cols-2">{card("Serving model details", info.champion)}{card("Challenger", info.challenger)}</div>
+      <div className="grid cols-2">{card("Champion (serving)", info.champion)}{card("Challenger", info.challenger)}</div>
       {stats && (
         <div className="panel table-wrap">
           <h2>A/B results</h2>

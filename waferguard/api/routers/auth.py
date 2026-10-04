@@ -116,6 +116,30 @@ def update_user(username: str, body: UserPatch, request: Request, p: Principal =
     return out
 
 
+@router.delete("/users/{username}")
+def delete_user(username: str, request: Request, p: Principal = Depends(require("Admin"))):
+    """Permanently remove a user account (Admin only).
+
+    Inspections and audit entries that mention the username are kept; they store it as plain text.
+    """
+    if username == p.username:
+        raise HTTPException(400, "you cannot delete your own account")
+    st = request.app.state.wg
+    with st.db.Session() as s:
+        u = s.scalar(select(User).where(User.username == username))
+        if not u:
+            raise HTTPException(404, "user not found")
+        if u.role == "Admin" and u.active:
+            other_admins = s.scalars(select(User).where(User.role == "Admin", User.active.is_(True), User.id != u.id)).all()
+            if not other_admins:
+                raise HTTPException(400, "cannot delete the last active administrator")
+        role = u.role
+        s.delete(u)
+        s.commit()
+    audit(st.db, p, "user_deleted", username, {"role": role})
+    return {"deleted": username}
+
+
 @router.post("/auth/password")
 def change_own_password(body: dict, request: Request, p: Principal = Depends(current_user)):
     st = request.app.state.wg

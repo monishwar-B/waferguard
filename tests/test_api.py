@@ -303,3 +303,20 @@ def test_shipped_profiles_validate(profile, monkeypatch):
     monkeypatch.setenv("WG_CONFIG", f"deploy/configs/{profile}.yaml")
     s = Settings()
     assert s.profile == profile and s.alerts.window > 0
+
+
+def test_admin_can_delete_users(client, admin):
+    op = make_user(client, admin, "del_op", "Operator")
+    make_user(client, admin, "del_target", "Operator")
+    make_user(client, admin, "del_admin2", "Admin")
+    # only Admin may delete
+    assert client.delete("/api/v1/users/del_target", headers=op).status_code == 403
+    assert client.delete("/api/v1/users/del_target").status_code == 401
+    # guard rails
+    assert client.delete("/api/v1/users/admin", headers=admin).status_code == 400   # own account
+    assert client.delete("/api/v1/users/nobody", headers=admin).status_code == 404
+    # success: user disappears and can no longer sign in
+    assert client.delete("/api/v1/users/del_target", headers=admin).json() == {"deleted": "del_target"}
+    names = [u["username"] for u in client.get("/api/v1/users", headers=admin).json()]
+    assert "del_target" not in names
+    assert client.post("/api/v1/auth/token", data={"username": "del_target", "password": "password123"}).status_code == 401
