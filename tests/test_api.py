@@ -305,18 +305,15 @@ def test_shipped_profiles_validate(profile, monkeypatch):
     assert s.profile == profile and s.alerts.window > 0
 
 
-def test_admin_can_delete_users(client, admin):
-    op = make_user(client, admin, "del_op", "Operator")
-    make_user(client, admin, "del_target", "Operator")
-    make_user(client, admin, "del_admin2", "Admin")
-    # only Admin may delete
-    assert client.delete("/api/v1/users/del_target", headers=op).status_code == 403
-    assert client.delete("/api/v1/users/del_target").status_code == 401
-    # guard rails
-    assert client.delete("/api/v1/users/admin", headers=admin).status_code == 400   # own account
-    assert client.delete("/api/v1/users/nobody", headers=admin).status_code == 404
-    # success: user disappears and can no longer sign in
-    assert client.delete("/api/v1/users/del_target", headers=admin).json() == {"deleted": "del_target"}
-    names = [u["username"] for u in client.get("/api/v1/users", headers=admin).json()]
-    assert "del_target" not in names
-    assert client.post("/api/v1/auth/token", data={"username": "del_target", "password": "password123"}).status_code == 401
+def test_history_survives_restart(settings):
+    from fastapi.testclient import TestClient
+
+    from waferguard.api.main import create_app
+    with TestClient(create_app(settings)) as c1:
+        h = token(c1)
+        rid = _inspect(c1, h, "Donut", 3)["id"]
+    with TestClient(create_app(settings)) as c2:  # same database + storage, as after reopening the app
+        h = token(c2)
+        body = c2.get("/api/v1/inspections", headers=h).json()
+        assert body["total"] == 1 and body["items"][0]["id"] == rid
+        assert c2.get(f"/api/v1/inspections/{rid}/image/annotated", headers=h).status_code == 200

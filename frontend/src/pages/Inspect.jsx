@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { api, authUrl, pct } from "../api.js";
+import { api, authUrl, fmtTime, pct } from "../api.js";
 import { Probabilities, Sev, name } from "../components/common.jsx";
-import ModelScores from "../components/ModelScores.jsx";
-import Guidance from "../components/Guidance.jsx";
 
 const ACCEPT = ".png,.jpg,.jpeg,.bmp,.tif,.tiff,.npy,.raw,.bin";
 
@@ -12,7 +10,7 @@ function useSticky(key, init) {
   return [v, setV];
 }
 
-export default function Inspect({ model }) {
+export default function Inspect({ events, openInspection }) {
   const [tab, setTab] = useState("upload");
   const [lot, setLot] = useSticky("wg.lot", "");
   const [equipment, setEquipment] = useSticky("wg.equipment", "");
@@ -23,7 +21,21 @@ export default function Inspect({ model }) {
   const [err, setErr] = useState("");
   const [raw, setRaw] = useState({ w: "", h: "", dtype: "uint16" });
   const [over, setOver] = useState(false);
+  const [recent, setRecent] = useState([]);
   const fileRef = useRef();
+
+  // Saved inspections live in the database, so reload them from the server (not from memory) every time
+  // this page opens, and whenever a new one is stored (upload, camera or batch).
+  const loadRecent = () => api("/api/v1/inspections?limit=8").then((d) => { setRecent(d.items); return d.items; }).catch(() => []);
+  const show = (id) => api(`/api/v1/inspections/${id}`).then((r) => {
+    setResult(r);
+    setPreview(r.has_image ? authUrl(`/api/v1/inspections/${r.id}/image/annotated`) : null);
+  }).catch(() => {});
+  useEffect(() => {
+    // restore the last verdict after reopening the app
+    loadRecent().then((items) => { if (items[0]) show(items[0].id); });
+  }, []);
+  useEffect(() => events?.subscribe((ev) => ev.type === "inspection.created" && loadRecent()), [events]);
 
   const send = async (file) => {
     setErr(""); setBusy(true);
@@ -41,6 +53,7 @@ export default function Inspect({ model }) {
       setResult(r);
       setPreview(authUrl(`/api/v1/inspections/${r.id}/image/annotated`));
       setWafer("");
+      loadRecent();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
@@ -95,10 +108,27 @@ export default function Inspect({ model }) {
           )}
           {err && <p className="error">{err}</p>}
           {result && <Verdict r={result} />}
+          <div className="panel">
+            <b>Recent inspections</b>
+            <div className="table-wrap">
+              <table>
+                <tbody>
+                  {recent.map((r) => (
+                    <tr key={r.id} className="clickable" tabIndex={0} onClick={() => { show(r.id); setTab("upload"); }}
+                      onDoubleClick={() => openInspection && openInspection(r.id)}
+                      onKeyDown={(e) => e.key === "Enter" && show(r.id)}>
+                      <td>{r.wafer_id || "–"}</td><td>{name(r.review_label || r.label)}</td>
+                      <td><Sev s={r.severity} /></td><td className="small muted">{fmtTime(r.created_at)}</td>
+                    </tr>
+                  ))}
+                  {!recent.length && <tr><td className="muted">Nothing inspected yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <p className="small muted" style={{ marginBottom: 0 }}>Click to view a saved result. Everything is also listed under History.</p>
+          </div>
         </div>
       </div>
-      {result?.guidance && <div style={{ marginTop: 18 }}><Guidance g={result.guidance} severity={result.severity} /></div>}
-      <div style={{ marginTop: 18 }}><ModelScores model={model} /></div>
     </>
   );
 }
@@ -113,8 +143,8 @@ function Verdict({ r }) {
       {r.domain_warning && <div className="warn-flag small">{r.domain_warning}</div>}
       {r.probabilities && <Probabilities probs={r.probabilities} />}
       {r.regions?.length > 0 && <p className="small muted">{r.regions.length} defect region{r.regions.length > 1 ? "s" : ""} outlined on the image.</p>}
-      {r.guidance && r.label !== "none" && (
-        <div className="small muted">Likely causes and next steps are below.</div>
+      {r.probable_causes?.length > 0 && (
+        <div className="small"><b>Check first:</b> {r.probable_causes.join("; ")}</div>
       )}
     </div>
   );
@@ -166,7 +196,7 @@ function Camera({ meta, onResult }) {
     <div className="stack" style={{ width: "100%", alignItems: "center" }}>
       <video ref={video} autoPlay playsInline muted />
       <canvas ref={canvas} hidden />
-      <div className="row">
+      <div className="row" style={{ color: "#dfe3e8" }}>
         {devices.length > 1 && (
           <select value={device} onChange={(e) => setDevice(e.target.value)}>
             <option value="">Default camera</option>

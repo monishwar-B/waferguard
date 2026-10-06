@@ -5,7 +5,7 @@
 FROM node:20-alpine AS ui
 WORKDIR /ui
 COPY frontend/package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+RUN npm install --no-audit --no-fund
 COPY frontend/ ./
 RUN npx vite build --outDir /ui/dist
 
@@ -24,8 +24,8 @@ COPY --from=ui /ui/dist/ waferguard/api/static/
 COPY models/ models/
 COPY deploy/configs/ deploy/configs/
 COPY sample_data/ sample_data/
-# create the volume mount points with the right owner: Docker copies this ownership into new named volumes
-RUN mkdir -p /data/images && chown -R wg:wg /data /app
+RUN mkdir -p /data && chown -R wg:wg /data /app
+VOLUME /data
 USER wg
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD curl -fs http://localhost:8000/health || exit 1

@@ -37,7 +37,9 @@ def data_dir() -> str:
 
 
 def free_port(preferred: int = 8765) -> int:
-    for port in (preferred, 0):
+    # Keep the port (and so the browser origin, which owns localStorage) stable between runs:
+    # try a small fixed range before falling back to any free port.
+    for port in (*range(preferred, preferred + 10), 0):
         with socket.socket() as s:
             try:
                 s.bind(("127.0.0.1", port))
@@ -94,7 +96,9 @@ def main():  # pragma: no cover - needs a display
     try:
         import webview
         webview.create_window("WaferGuard", url, width=1360, height=880, min_size=(900, 640))
-        webview.start()
+        # pywebview starts in private mode by default, which wipes localStorage (session, lot/equipment IDs)
+        # every time the app closes. Keep the web profile in the per-user data folder instead.
+        webview.start(private_mode=False, storage_path=os.path.join(data_dir(), "webview"))
     except Exception:  # noqa: BLE001 - no GUI toolkit: use the browser and keep serving
         webbrowser.open(url)
         print(f"WaferGuard running at {url} (Ctrl+C to quit)")
