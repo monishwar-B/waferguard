@@ -380,8 +380,10 @@ svg.chart text { font-family: var(--font-mono); font-size: 11px; fill: var(--gra
 @media print { .rail, .toast, .footer { display: none !important; } .app { display: block; } }
 
 /* ---------- die matrix ---------- */
-.diemap { margin: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s3); }
-.diemap svg { width: 100%; max-height: 56vh; }
+.diemap { position: relative; margin: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s3); }
+.diemap svg { width: 100%; max-height: 56vh; cursor: crosshair; touch-action: manipulation; outline-offset: 4px; }
+.die-cluster { stroke: var(--ink); stroke-width: 0.7; }
+.die-sel { fill: none; stroke: var(--ink); stroke-width: 1.4; pointer-events: none; }
 .die-pass { fill: var(--die-pass); background: var(--die-pass); }
 .die-fail { fill: var(--signal); background: var(--signal); }
 .diemap figcaption { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2) var(--s4); font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--graphite); }
@@ -389,3 +391,16 @@ svg.chart text { font-family: var(--font-mono); font-size: 11px; fill: var(--gra
 .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 .legend b { color: var(--ink); font-weight: 500; }
 @media (max-width: 760px) { .stage-pair { grid-template-columns: 1fr; } }
+
+/* ---------- die inspector ---------- */
+.inspector { position: absolute; top: 4px; z-index: 3; width: min(250px, 78%); padding: 16px 18px 14px; border-radius: 16px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--surface) 84%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); animation: rise var(--dur-state) var(--ease); text-align: left; }
+.inspector.right { right: 4px; }
+.inspector.left { left: 4px; }
+.inspector h4 { margin: 4px 0 10px; font: 600 28px/1.1 var(--font-display); letter-spacing: -0.02em; text-transform: none; color: var(--ink); }
+.inspector dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
+.inspector dt { color: var(--graphite); }
+.inspector dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.inspector dd.bad { color: var(--signal); }
+.inspector-close { position: absolute; top: 8px; right: 10px; width: 28px; height: 28px; border: 0; background: transparent; color: var(--graphite); font-size: 22px; line-height: 1; border-radius: 50%; }
+.inspector-close:hover { color: var(--ink); background: var(--paper); }
+@media (max-width: 760px) { .inspector { width: min(240px, 80%); } }

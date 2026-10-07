@@ -160,7 +160,7 @@ export default function Inspect({ events, openInspection, model }) {
               </div>
               <div className="pane">
                 <div className="map-head"><span className="label">Die matrix</span><span className="label">{result ? `${pct(result.fail_ratio)} failing` : "–"}</span></div>
-                <div className="stage"><div className="view"><DieMatrix id={result?.id} /></div></div>
+                <div className="stage"><div className="view"><DieMatrix id={result?.id} label={result ? name(result.label) : undefined} /></div></div>
               </div>
             </div>
           </div>

@@ -195,6 +195,7 @@ def get_diemap(iid: str, request: Request, size: int = Query(48, ge=16, le=96), 
         raise HTTPException(422, "die map not available for this input")
     grid = _downsample_levels(levels, size)
     return {"rows": int(grid.shape[0]), "cols": int(grid.shape[1]),
+            "die_rows": int(levels.shape[0]), "die_cols": int(levels.shape[1]),
             "grid": ["".join(str(int(v)) for v in row) for row in grid],
             "pass": int((grid == 1).sum()), "fail": int((grid == 2).sum())}
 

@@ -330,6 +330,7 @@ def test_diemap_endpoint(client, admin):
     assert j["rows"] <= 32 and j["cols"] <= 32 and len(j["grid"]) == j["rows"]
     assert all(len(row) == j["cols"] and set(row) <= set("012") for row in j["grid"])
     assert j["pass"] + j["fail"] > 0
+    assert j["die_rows"] >= j["rows"] and j["die_cols"] >= j["cols"]
     assert client.get(f"/api/v1/inspections/{iid}/diemap").status_code == 401
     assert client.get("/api/v1/inspections/does-not-exist/diemap", headers=admin).status_code == 404
 
