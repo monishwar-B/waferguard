@@ -1,4 +1,8 @@
 # Render Blueprint: deploys the WaferGuard API (FastAPI + ONNX models) from the Dockerfile.
+#
+# Render's free web service erases its disk on every restart and redeploy. With the default SQLite
+# database that wipes users, history and images. Point WG_DATABASE_URL at a free hosted PostgreSQL
+# (Neon / Supabase, see docs/PERSISTENT_HISTORY.md): images are then kept in the database as well.
 services:
   - type: web
     name: waferguard-api
@@ -12,5 +16,7 @@ services:
         value: "8000"
       - key: WG_JWT_SECRET
         generateValue: true
-      - key: WG_ADMIN_PASSWORD
-        sync: false        # Render asks you for this on first deploy
+      - key: WG_BOOTSTRAP_ADMIN_PASSWORD   # the admin login password (used when the first admin is created)
+        sync: false
+      - key: WG_DATABASE_URL               # postgresql://user:password@host/dbname?sslmode=require
+        sync: false

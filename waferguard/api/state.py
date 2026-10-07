@@ -8,6 +8,7 @@ from sqlalchemy import select
 from waferguard.api.db import Database, User
 from waferguard.api.security import hash_password
 from waferguard.api.services.alerts import AlertEngine
+from waferguard.api.services import filestore
 from waferguard.api.services.events import EventBus
 from waferguard.api.services.inspections import InspectionService
 from waferguard.api.services.models import ModelRegistry
@@ -21,6 +22,7 @@ class AppState:
         self.settings = settings
         self.db = Database(settings.database_url)
         self.db.create_all()
+        filestore.configure(self.db, filestore.resolve_mode(settings.image_store, settings.database_url))
         self._bootstrap_admin()
         if redis_client is None and settings.redis_url:
             import redis

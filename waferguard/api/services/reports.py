@@ -13,6 +13,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Image as RLImage
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from waferguard.api.services import filestore
 from waferguard.taxonomy import PROBABLE_CAUSES, display_name
 
 CSV_FIELDS = ["id", "created_at", "operator", "equipment_id", "lot_id", "wafer_id", "recipe", "source", "filename",
@@ -57,8 +58,9 @@ def inspection_pdf(insp, generated_by: str, guide: dict | None = None) -> bytes:
     t = _table(res, [45 * mm, 120 * mm])
     t.setStyle(TableStyle([("BACKGROUND", (1, 2), (1, 2), _SEV_COL.get(insp.severity, colors.white))]))
     el += [t, Spacer(1, 8)]
-    if insp.annotated_path and os.path.exists(insp.annotated_path):
-        el += [RLImage(insp.annotated_path, width=85 * mm, height=85 * mm, kind="proportional"), Spacer(1, 6)]
+    img = filestore.get(insp.annotated_path)
+    if img:
+        el += [RLImage(io.BytesIO(img), width=85 * mm, height=85 * mm, kind="proportional"), Spacer(1, 6)]
     probs = sorted((insp.probabilities or {}).items(), key=lambda kv: -kv[1])
     el += [Paragraph("Class probabilities", ss["Heading3"]),
            _table([["Class", "Probability"]] + [[display_name(k), f"{v:.2%}"] for k, v in probs], [60 * mm, 40 * mm])]
@@ -145,8 +147,10 @@ def images_zip(rows, include_masks: bool = True) -> bytes:
         z.writestr("inspections.csv", inspections_csv(rows))
         for r in rows:
             stem = f"{r.lot_id or 'nolot'}_{r.wafer_id or r.id}_{r.review_label or r.label}".replace("/", "-")
-            if r.annotated_path and os.path.exists(r.annotated_path):
-                z.write(r.annotated_path, f"annotated/{stem}.png")
-            if include_masks and r.mask_path and os.path.exists(r.mask_path):
-                z.write(r.mask_path, f"masks/{stem}_mask.png")
+            ann = filestore.get(r.annotated_path)
+            if ann:
+                z.writestr(f"annotated/{stem}.png", ann)
+            msk = filestore.get(r.mask_path) if include_masks else None
+            if msk:
+                z.writestr(f"masks/{stem}_mask.png", msk)
     return buf.getvalue()

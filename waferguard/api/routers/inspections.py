@@ -6,13 +6,13 @@ import os
 import zipfile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import desc, func, select
 
 from waferguard.api.db import Inspection, Job, utcnow
 from waferguard.api.security import Principal, oauth2, require, resolve_principal, role_at_least
-from waferguard.api.services import reports
+from waferguard.api.services import filestore, reports
 from waferguard.api.services.inspections import inspection_dict, with_guidance
 from waferguard.api.services.observability import audit
 from waferguard.data.io import ImageFormatError, RawSpec, is_supported, load_image_bytes
@@ -158,9 +158,10 @@ def get_image(iid: str, kind: str, request: Request, p: Principal = Depends(user
     path = {"source": r.image_path, "annotated": r.annotated_path, "mask": r.mask_path}.get(kind)
     if kind not in ("source", "annotated", "mask"):
         raise HTTPException(404, "unknown image kind")
-    if not path or not os.path.exists(path):
+    data = filestore.get(path)
+    if data is None:
         raise HTTPException(404, "image not stored")
-    return FileResponse(path)
+    return Response(data, media_type=filestore.media_type(path), headers={"Cache-Control": "private, max-age=3600"})
 
 
 def _downsample_levels(levels, size: int):
@@ -185,11 +186,11 @@ def _downsample_levels(levels, size: int):
 @router.get("/inspections/{iid}/diemap", summary="Die matrix of the stored wafer: 0 off-wafer, 1 pass, 2 fail")
 def get_diemap(iid: str, request: Request, size: int = Query(48, ge=16, le=96), p: Principal = Depends(user_or_query_token)):
     r = _get(_state(request), iid)
-    if not r.image_path or not os.path.exists(r.image_path):
+    data = filestore.get(r.image_path)
+    if data is None:
         raise HTTPException(404, "image not stored")
     try:
-        with open(r.image_path, "rb") as fh:
-            levels, _ = to_levels(load_image_bytes(fh.read(), r.image_path))
+        levels, _ = to_levels(load_image_bytes(data, r.image_path))
     except Exception:  # noqa: BLE001 - raw sensor files need their geometry, which is not stored
         raise HTTPException(422, "die map not available for this input")
     grid = _downsample_levels(levels, size)

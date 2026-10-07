@@ -97,4 +97,4 @@ def test_compose_and_dockerfile_invariants():
     assert c["services"]["worker"]["depends_on"]["api"]["condition"] == "service_healthy"
     assert "healthcheck" in c["services"]["api"]
     df = open(os.path.join(ROOT, "deploy", "docker", "Dockerfile")).read()
-    assert "mkdir -p /data/images" in df and "USER wg" in df
+    assert "mkdir -p /data" in df and "USER wg" in df

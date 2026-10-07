@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from waferguard.api.db import Inspection
 from waferguard.api.security import Principal, require
+from waferguard.api.services import filestore
 from waferguard.api.services.camera import probe_devices
 from waferguard.api.services.observability import REGISTRY, audit
 
@@ -22,7 +23,8 @@ def health():
 @router.get("/ready", summary="Readiness: database reachable and model loaded")
 def ready(request: Request, response: Response):
     st = request.app.state.wg
-    checks = {"database": False, "model": st.models.ready, "queue": st.queue.kind if st.queue else None}
+    checks = {"database": False, "model": st.models.ready, "queue": st.queue.kind if st.queue else None,
+              "database_kind": st.db.engine.dialect.name, "image_store": filestore.mode()}
     try:
         checks["database"] = st.db.ping()
     except Exception as exc:  # noqa: BLE001

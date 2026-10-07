@@ -11,7 +11,7 @@ from functools import lru_cache
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     redis_url: str | None = None
     storage_dir: str = os.path.join(ROOT, "var", "images")
     store_images: bool = True
+    image_store: str = "auto"  # auto | disk | db (see services/filestore.py)
     jwt_secret: str = "change-me-in-production"
     token_minutes: int = 12 * 60
     bootstrap_admin_user: str = "admin"
@@ -73,6 +74,18 @@ class Settings(BaseSettings):
     log_json: bool = False
     log_level: str = "INFO"
     serve_frontend: bool = True
+
+    @field_validator("database_url")
+    @classmethod
+    def _postgres_driver(cls, v: str) -> str:
+        """Hosted databases (Neon, Supabase, Render) hand out postgres:// URLs; SQLAlchemy needs the psycopg driver name."""
+        if not v.strip():  # an empty WG_DATABASE_URL (a Blueprint variable left blank) means "use the default"
+            return f"sqlite:///{os.path.join(ROOT, 'var', 'waferguard.db')}"
+        v = v.strip()
+        for old in ("postgres://", "postgresql://"):
+            if v.startswith(old):
+                return "postgresql+psycopg://" + v[len(old):]
+        return v
     camera_store_every: int = 1      # persist every Nth camera frame (1 = all)
     fail_ratio_usl: float = 0.15     # upper spec limit used for Cpk/Ppk of the fail-die ratio
     models: ModelSettings = Field(default_factory=ModelSettings)

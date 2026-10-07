@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import io
 import logging
 import os
 
@@ -9,6 +10,7 @@ import numpy as np
 from PIL import Image
 
 from waferguard.api.db import Inspection
+from waferguard.api.services import filestore
 from waferguard.api.services.observability import ALERTS, INSPECTIONS, LATENCY
 from sqlalchemy import desc, func, select
 
@@ -36,27 +38,30 @@ class InspectionService:
         os.makedirs(d, exist_ok=True)
         return d, insp_id
 
-    def _store(self, insp_id: str, image: np.ndarray, result: dict, raw_bytes: bytes | None, filename: str | None):
+    def _store(self, insp_id: str, image: np.ndarray, result: dict, raw_bytes: bytes | None, filename: str | None, session=None):
         d, base = self._paths(insp_id)
         ext = os.path.splitext(filename or "")[1].lower() or ".png"
-        img_path = os.path.join(d, f"{base}_src{ext}")
         if raw_bytes is not None:
-            with open(img_path, "wb") as fh:
-                fh.write(raw_bytes)
+            src_bytes = raw_bytes
         else:
-            img_path = os.path.join(d, f"{base}_src.png")
+            ext = ".png"
             arr = image if image.dtype == np.uint8 else (255 * (image - image.min()) / max(float(np.ptp(image)), 1e-6)).astype(np.uint8)
-            Image.fromarray(arr).save(img_path)
+            buf = io.BytesIO()
+            Image.fromarray(arr).save(buf, format="PNG")
+            src_bytes = buf.getvalue()
+        img_path = filestore.put(f"{base}_src{ext}", src_bytes, d, session)
         # colour-coded / level maps are re-rendered in the calm die-map palette; camera photos are shown as captured
         src = image if (result["input_domain"] == "optical" and image.dtype == np.uint8
                         and image.shape[:2] == result["_levels"].shape) else None
         ann = render(result["_levels"], result["regions"], result["label"], result["severity"], result["confidence"], src)
-        ann_path = os.path.join(d, f"{base}_annotated.png")
-        ann.save(ann_path)
+        buf = io.BytesIO()
+        ann.save(buf, format="PNG")
+        ann_path = filestore.put(f"{base}_annotated.png", buf.getvalue(), d, session)
         mask_path = None
         if result.get("_mask") is not None:
-            mask_path = os.path.join(d, f"{base}_mask.png")
-            Image.fromarray((result["_mask"] > 0).astype(np.uint8) * 255).save(mask_path)
+            buf = io.BytesIO()
+            Image.fromarray((result["_mask"] > 0).astype(np.uint8) * 255).save(buf, format="PNG")
+            mask_path = filestore.put(f"{base}_mask.png", buf.getvalue(), d, session)
         return img_path, ann_path, mask_path
 
     def inspect(self, image: np.ndarray, meta: dict, raw_bytes: bytes | None = None, publish: bool = True) -> dict:
@@ -84,7 +89,7 @@ class InspectionService:
             s.flush()
             if self.state.settings.store_images and meta.get("store", True):
                 insp.image_path, insp.annotated_path, insp.mask_path = self._store(
-                    insp.id, image, result, raw_bytes, meta.get("filename"))
+                    insp.id, image, result, raw_bytes, meta.get("filename"), session=s)
             s.commit()
         INSPECTIONS.labels(result["label"], result["severity"], insp.source, variant).inc()
         LATENCY.labels(variant).observe(result["latency_ms"] / 1000.0)

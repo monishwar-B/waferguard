@@ -1,16 +1,16 @@
 """Database layer (SQLAlchemy 2.0).
 
 PostgreSQL in production (``WG_DATABASE_URL=postgresql+psycopg://...``),
-SQLite for the desktop build and tests. Images live on the storage volume;
-the database keeps paths and all metadata (lot / wafer / equipment / operator).
+SQLite for the desktop build and tests. Images live on the storage volume (or, on hosts with a temporary disk,
+inside the database: see services/filestore.py); the database keeps references and all metadata (lot / wafer / equipment / operator).
 """
 from __future__ import annotations
 
 import datetime as dt
 import uuid
 
-from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, create_engine, event,
-                        func)
+from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, create_engine,
+                        event, func)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 
@@ -61,6 +61,14 @@ class Job(Base):
     failed: Mapped[int] = mapped_column(Integer, default=0)
     params: Mapped[dict] = mapped_column(JSON, default=dict)
     error: Mapped[str | None] = mapped_column(Text)
+
+
+class StoredFile(Base):
+    """Image bytes kept in the database (WG_IMAGE_STORE=db) so history survives hosts that erase their disk."""
+    __tablename__ = "stored_files"
+    ref: Mapped[str] = mapped_column(String(300), primary_key=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Inspection(Base):
