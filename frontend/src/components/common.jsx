@@ -27,13 +27,13 @@ export function ControlChart({ points, center, height = 220, yMax, yFmt = (v) =>
     <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="control chart">
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#eceee9" />
+          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
           <text x={L - 6} y={y(t) + 4} textAnchor="end">{yFmt(t)}</text>
         </g>
       ))}
       {points[0].ucl !== undefined && <path d={path("ucl")} fill="none" stroke="var(--sev-critical)" strokeDasharray="5 4" />}
       {points[0].lcl !== undefined && <path d={path("lcl")} fill="none" stroke="var(--sev-critical)" strokeDasharray="5 4" opacity="0.5" />}
-      {center !== undefined && center !== null && <line x1={L} x2={W - R} y1={y(center)} y2={y(center)} stroke="var(--litho)" strokeWidth="1.5" />}
+      {center !== undefined && center !== null && <line x1={L} x2={W - R} y1={y(center)} y2={y(center)} stroke="var(--graphite)" strokeWidth="1.5" />}
       <path d={path("y")} fill="none" stroke="var(--ink)" strokeWidth="1.8" />
       {points.map((p, i) => (
         <g key={i}>
@@ -56,7 +56,7 @@ export function Bars({ items, height = 200 }) {
       {items.map((it, i) => (
         <g key={it.label} transform={`translate(0,${i * rowH + 4})`}>
           <text x={L - 8} y={rowH / 2 + 4} textAnchor="end">{it.label}</text>
-          <rect x={L} y={3} height={rowH - 8} width={((W - L - R) * it.value) / max} fill={i === 0 ? "var(--litho)" : "var(--ink-2)"} rx="2" />
+          <rect x={L} y={3} height={rowH - 8} width={((W - L - R) * it.value) / max} fill={i === 0 ? "var(--ink)" : "var(--graphite)"} rx="5" />
           <text x={L + ((W - L - R) * it.value) / max + 6} y={rowH / 2 + 4}>{it.text ?? it.value}</text>
         </g>
       ))}
@@ -64,16 +64,16 @@ export function Bars({ items, height = 200 }) {
   );
 }
 
-export function Probabilities({ probs }) {
-  const items = Object.entries(probs || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+// Horizontal probability bars; the leading class is highlighted.
+export function Probabilities({ probs, top = 4 }) {
+  const items = Object.entries(probs || {}).sort((a, b) => b[1] - a[1]).slice(0, top);
   return (
-    <div className="stack" style={{ gap: 8 }}>
+    <div className="stack" style={{ gap: 12 }}>
       {items.map(([k, v], i) => (
-        <div key={k}>
-          <div className="row small" style={{ justifyContent: "space-between" }}>
-            <span>{name(k)}</span><span className="num">{pct(v)}</span>
-          </div>
-          <div className={`bar ${i === 0 ? "top" : ""}`}><span style={{ width: `${v * 100}%` }} /></div>
+        <div className={`prob ${i === 0 ? "top" : ""}`} key={k}>
+          <span>{name(k)}</span>
+          <span className="prob-bar" role="img" aria-label={`${(v * 100).toFixed(1)} percent`}><i style={{ width: `${Math.max(v * 100, v > 0 ? 1.5 : 0)}%` }} /></span>
+          <span className="mono">{pct(v)}</span>
         </div>
       ))}
     </div>
