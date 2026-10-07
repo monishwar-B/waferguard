@@ -4,6 +4,7 @@ import { Probabilities, Sev, name } from "../components/common.jsx";
 import { Icon } from "../components/icons.jsx";
 import Guidance from "../components/Guidance.jsx";
 import ModelScores from "../components/ModelScores.jsx";
+import DieMatrix from "../components/DieMatrix.jsx";
 
 const ACCEPT = ".png,.jpg,.jpeg,.bmp,.tif,.tiff,.npy,.raw,.bin";
 
@@ -145,13 +146,21 @@ export default function Inspect({ events, openInspection, model }) {
 
         <div className="col-right">
           <div className="card map-card">
-            <div className="map-head"><span className="label">Annotated wafer</span><span className="label">{result ? name(result.label) : "No scan yet"}</span></div>
-            <div className="stage">
-              <div className={`band ${result?.severity || ""}`} />
-              <div className="view">
-                {tab === "camera" ? <Camera meta={{ lot, equipment }} onResult={setResult} /> :
-                  preview ? <img src={preview} alt="Annotated wafer" /> :
-                    <p className="empty">Your wafer map appears here, with failing regions outlined.</p>}
+            <div className="stage-pair">
+              <div className="pane">
+                <div className="map-head"><span className="label">Annotated image</span><span className="label">{result ? name(result.label) : "No scan yet"}</span></div>
+                <div className="stage">
+                  <div className={`band ${result?.severity || ""}`} />
+                  <div className="view">
+                    {tab === "camera" ? <Camera meta={{ lot, equipment }} onResult={setResult} /> :
+                      preview ? <img src={preview} alt="Annotated wafer" /> :
+                        <p className="empty">Your wafer map appears here, with failing regions outlined.</p>}
+                  </div>
+                </div>
+              </div>
+              <div className="pane">
+                <div className="map-head"><span className="label">Die matrix</span><span className="label">{result ? `${pct(result.fail_ratio)} failing` : "–"}</span></div>
+                <div className="stage"><div className="view"><DieMatrix id={result?.id} /></div></div>
               </div>
             </div>
           </div>

@@ -317,3 +317,32 @@ def test_history_survives_restart(settings):
         body = c2.get("/api/v1/inspections", headers=h).json()
         assert body["total"] == 1 and body["items"][0]["id"] == rid
         assert c2.get(f"/api/v1/inspections/{rid}/image/annotated", headers=h).status_code == 200
+
+
+def test_diemap_endpoint(client, admin):
+    r = client.post("/api/v1/inspections", headers=admin,
+                    files={"file": ("w.png", png_bytes("Edge-Ring"), "image/png")})
+    assert r.status_code == 200, r.text
+    iid = r.json()["id"]
+    d = client.get(f"/api/v1/inspections/{iid}/diemap?size=32", headers=admin)
+    assert d.status_code == 200, d.text
+    j = d.json()
+    assert j["rows"] <= 32 and j["cols"] <= 32 and len(j["grid"]) == j["rows"]
+    assert all(len(row) == j["cols"] and set(row) <= set("012") for row in j["grid"])
+    assert j["pass"] + j["fail"] > 0
+    assert client.get(f"/api/v1/inspections/{iid}/diemap").status_code == 401
+    assert client.get("/api/v1/inspections/does-not-exist/diemap", headers=admin).status_code == 404
+
+
+def test_admin_can_delete_users(client, admin):
+    op = make_user(client, admin, "del_op", "Operator")
+    make_user(client, admin, "del_target", "Operator")
+    make_user(client, admin, "del_admin2", "Admin")
+    assert client.delete("/api/v1/users/del_target", headers=op).status_code == 403
+    assert client.delete("/api/v1/users/del_target").status_code == 401
+    assert client.delete("/api/v1/users/admin", headers=admin).status_code == 400   # own account
+    assert client.delete("/api/v1/users/nobody", headers=admin).status_code == 404
+    assert client.delete("/api/v1/users/del_target", headers=admin).json() == {"deleted": "del_target"}
+    names = [u["username"] for u in client.get("/api/v1/users", headers=admin).json()]
+    assert "del_target" not in names
+    assert client.post("/api/v1/auth/token", data={"username": "del_target", "password": "password123"}).status_code == 401

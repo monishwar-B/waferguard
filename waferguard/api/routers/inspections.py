@@ -16,6 +16,7 @@ from waferguard.api.services import reports
 from waferguard.api.services.inspections import inspection_dict, with_guidance
 from waferguard.api.services.observability import audit
 from waferguard.data.io import ImageFormatError, RawSpec, is_supported, load_image_bytes
+from waferguard.data.preprocess import to_levels
 from waferguard.inference.engine import ModelLoadError
 
 router = APIRouter(prefix="/api/v1", tags=["inspections"])
@@ -160,6 +161,41 @@ def get_image(iid: str, kind: str, request: Request, p: Principal = Depends(user
     if not path or not os.path.exists(path):
         raise HTTPException(404, "image not stored")
     return FileResponse(path)
+
+
+def _downsample_levels(levels, size: int):
+    """Shrink a 0/1/2 die map to at most size x size cells (a cell is 'fail' when >= 35 % of its wafer dies fail)."""
+    import numpy as np
+
+    h, w = levels.shape
+    rows, cols = min(size, h), min(size, w)
+    out = np.zeros((rows, cols), np.uint8)
+    ri = np.array_split(np.arange(h), rows)
+    ci = np.array_split(np.arange(w), cols)
+    for i, rr in enumerate(ri):
+        for j, cc in enumerate(ci):
+            block = levels[np.ix_(rr, cc)]
+            fail, ok = int((block == 2).sum()), int((block == 1).sum())
+            if fail + ok == 0:
+                continue
+            out[i, j] = 2 if fail / (fail + ok) >= 0.35 else 1
+    return out
+
+
+@router.get("/inspections/{iid}/diemap", summary="Die matrix of the stored wafer: 0 off-wafer, 1 pass, 2 fail")
+def get_diemap(iid: str, request: Request, size: int = Query(48, ge=16, le=96), p: Principal = Depends(user_or_query_token)):
+    r = _get(_state(request), iid)
+    if not r.image_path or not os.path.exists(r.image_path):
+        raise HTTPException(404, "image not stored")
+    try:
+        with open(r.image_path, "rb") as fh:
+            levels, _ = to_levels(load_image_bytes(fh.read(), r.image_path))
+    except Exception:  # noqa: BLE001 - raw sensor files need their geometry, which is not stored
+        raise HTTPException(422, "die map not available for this input")
+    grid = _downsample_levels(levels, size)
+    return {"rows": int(grid.shape[0]), "cols": int(grid.shape[1]),
+            "grid": ["".join(str(int(v)) for v in row) for row in grid],
+            "pass": int((grid == 1).sum()), "fail": int((grid == 2).sum())}
 
 
 class ReviewIn(BaseModel):
